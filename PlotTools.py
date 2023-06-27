@@ -6,12 +6,13 @@ import numpy as np
 class PlotTools:
     def __init__(self, Data, close, where, where_chikou, time, session, high, low, ichimoku):
         self.fig = plt.figure(figsize=(1, 1))
-        self.line1 = plt.plot(Data[:, close], color='black', label='LDOUSDT')
+        self.line1 = plt.plot(Data[:, close], color='black', label='LDOUSDT', markevery=Data[:,10])
         self.line2 = plt.plot(Data[:, where], color='red', label='Kijun-Sen')
         self.line3 = plt.plot(Data[:, where + 1], color='blue', label='Tenkan-Sen')
         self.line4 = plt.plot(Data[:, where + 2], color='green', dashes=[1, 1], label='Senkou-Span-a')
         self.line5 = plt.plot(Data[:, where + 3], color='red', dashes=[1, 1], label='Senkou-Span-b')
         self.line6 = plt.plot(Data[:, where_chikou], color='yellow', label='Chikou-Span')
+        plt.annotate
         #plt.plot(Data[:, close], color='green', marker='^', visible=(Data[:, 10] == 1))
         #plt.plot(Data[:, close], color='red', marker='v', visible=(Data[:, 11] == -1))
         y1 = Data[:, where + 2]

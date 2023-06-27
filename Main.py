@@ -11,7 +11,7 @@ import datetime
 from PlotTools import PlotTools
 
 
-def main():
+def main_with_numpy():
     # Define ichimoku variables
     kijun_lookback = 26
     tenkan_lookback = 9
@@ -44,7 +44,7 @@ def main():
     quotes = np.delete(quotes, quotes.shape[1]-1, axis=1)
     quotes = np.delete(quotes, quotes.shape[1]-1, axis=1)
     quotes = np.delete(quotes, quotes.shape[1]-1, axis=1)
-    Data = ichimoku_algorithm.update(quotes, high, low, close, where, where_chikou)
+    Data = ichimoku_algorithm.update(quotes[:25000], high, low, close, where, where_chikou)
     Data = ichimoku_algorithm.signal(Data, buy, sell, close, where+1, where, senkou_span_a, senkou_span_b, where_chikou)
     plottingTest = PlotTools(Data, close, where, where_chikou, time, session, high, low, ichimoku_algorithm)
 
@@ -52,5 +52,11 @@ def main():
     #qf = cf.QuantFig(quotes)
     #plyo.iplot(qf.iplot(asFigure=True))
 
+
+def test(Data, close):
+    indexWhenBuying = np.where(Data[:, 10] == 1)
+    indexWhenSelling = np.where(Data[:, 11] == -1)
+    Data[indexWhenBuying, close]
+
 if __name__ == "__main__":
-    main()
+    main_with_numpy()

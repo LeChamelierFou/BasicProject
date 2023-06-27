@@ -1,4 +1,7 @@
 import numpy as np
+import pandas as pd
+import mplfinance as mpf
+
 
 # The function to add a number of columns inside an array
 def adder(Data, times):
@@ -20,5 +23,21 @@ def deleter(Data, index, times):
 # The function to delete a number of rows from the beginning
 def jump(Data, jump):
     Data = Data[jump:, ]
-
     return Data
+
+
+def generate_supports_and_resistances(df, threshold, display=False):
+    # Detect supports and resistances based on fractals methods
+    supports = df[df.Low == df.Low.rolling(5, center=True).min()].Low
+    resistances = df[df.High == df.High.rolling(5, center=True).max()].High
+
+    # Concatenate both datas in levels list
+    levels = pd.concat([supports, resistances])
+    # Filter levels with a given threshold
+    levels = levels[abs(levels.diff()) > threshold]
+
+    # The levels could be displayed with the candles if wanted
+    if display:
+        mpf.plot(df, type='candle', hlines=levels.to_list(), style='charles')
+
+    return levels
