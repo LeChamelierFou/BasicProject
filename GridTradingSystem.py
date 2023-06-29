@@ -30,38 +30,38 @@ def getlevels(date, First=True):
 def slicedf(date):
     return df[df.index.date == pd.to_datetime(date)]
 
+def grid_trading_system():
+    position_arr = [False, False]
+    profitsPercent = []
+    profits = []
 
-position_arr = [False, False]
-profitsPercent = []
-profits = []
+    for date in opens.index:
+        df_t = slicedf(date)
+        if not any(position_arr):
+            firstlevels = getlevels(date)
+            secondlevels = getlevels(date, first=False)
 
-for date in opens.index:
-    df_t = slicedf(date)
-    if not any(position_arr):
-        firstlevels = getlevels(date)
-        secondlevels = getlevels(date, first=False)
+        for index, row in df_t.iterrows():
+            if not position_arr[0]:
+                if row.Low <= firstlevels[0]:
+                    print('buy first')
+                    position_arr[0] = True
+                    buy_1 = firstlevels[0]
+            if position_arr[0] and not position_arr[1]:
+                if row.Low <= secondlevels[0]:
+                    print('buy second')
+                    position_arr[1] = True
+                    buy_2 = secondlevels[0]
+                if row.High >= firstlevels[1]:
+                    print('sell first')
+                    position_arr[0] = False
+                    profitsPercent.append((firstlevels[1] - buy_1) / buy_1)
+                    profits.append(firstlevels[1] - buy_1)
+            if position_arr[0]:
+                if row.High >= secondlevels[1]:
+                    print('sell second')
+                    position_arr[1] = False
+                    profitsPercent.append((secondlevels[1] - buy_2) / buy_2)
+                    profits.append(secondlevels[1] - buy_2)
 
-    for index, row in df_t.iterrows():
-        if not position_arr[0]:
-            if row.Low <= firstlevels[0]:
-                print('buy first')
-                position_arr[0] = True
-                buy_1 = firstlevels[0]
-        if position_arr[0] and not position_arr[1]:
-            if row.Low <= secondlevels[0]:
-                print('buy second')
-                position_arr[1] = True
-                buy_2 = secondlevels[0]
-            if row.High >= firstlevels[1]:
-                print('sell first')
-                position_arr[0] = False
-                profitsPercent.append((firstlevels[1] - buy_1) / buy_1)
-                profits.append(firstlevels[1] - buy_1)
-        if position_arr[0]:
-            if row.High >= secondlevels[1]:
-                print('sell second')
-                position_arr[1] = False
-                profitsPercent.append((secondlevels[1] - buy_2) / buy_2)
-                profits.append(secondlevels[1] - buy_2)
-
-backtest = (pd.Series(profits) + 1).cumprod()
+    backtest = (pd.Series(profits) + 1).cumprod()
