@@ -37,7 +37,7 @@ def on_message(ws, message):
         in_position = False
 
 
-if __name__ == "__main__":D
+if __name__ == "__main__":
     # Binance webSocket
     #endpoint = 'wss://stream.binance.com:9443/ws'  # Check if the endpoint is currently valid
     #our_msg = json.dumps({'method': 'SUBSCRIBE',
