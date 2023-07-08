@@ -1,7 +1,7 @@
 1. Installer docker
 2. Lancer un invité de commande / terminal dans le dossier de docker
 3. Exécuter la commande : docker build -t optimumtrade .
-4. Exécuter la commande : docker run -d optimumtrade
+4. Exécuter la commande : docker run -d --name optimumtrade optimumtrade
 5. Exécuter la commande : docker ps
 6. Récupérer le container_ID lié à l'image optimum trade
 7. Exécuter la commande : docker exec Container_ID bash

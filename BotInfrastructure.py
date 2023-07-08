@@ -38,11 +38,6 @@ def on_message(ws, message):
 
 
 if __name__ == "__main__":
-    # Binance webSocket
-    #endpoint = 'wss://stream.binance.com:9443/ws'  # Check if the endpoint is currently valid
-    #our_msg = json.dumps({'method': 'SUBSCRIBE',
-    #                      'params': ['btcusdt@ticker'],
-    #                      'id': 1})
     confirm = False
     endpoint = 'wss://stream-testnet.bybit.com/v5/public/linear'
     our_msg = json.dumps({'op': 'subscribe',
@@ -52,7 +47,8 @@ if __name__ == "__main__":
     buyorders, sellorders = [], []
     in_position = False
 
+    # Recuperer toutes les datas
+
     ws = websocket.WebSocketApp(endpoint, on_message=on_message, on_open=on_open)
     ws.run_forever()
-
     # Bybit Websocket
