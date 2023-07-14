@@ -1,8 +1,27 @@
+import os
+
 import numpy as np
 import pandas as pd
 import mplfinance as mpf
+import configparser
 
 
+def createconfigfile():
+    print("Create config file")
+    config = configparser.ConfigParser()
+    config['INFORMATIONS'] = {'Api': 'hdtxv5se62dchjn'}
+    config['PAIRS'] = {'BTCUSDT' : '1',
+                       'ETHUSDT' : '15'}
+    with open('config.ini', 'w') as configfile:
+        config.write(configfile)
+
+def readconfigfile():
+    if(not os.path.exists("config.ini")):
+        createconfigfile()
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    return config
+        
 # The function to add a number of columns inside an array
 def adder(Data, times):
     for i in range(1, times + 1):

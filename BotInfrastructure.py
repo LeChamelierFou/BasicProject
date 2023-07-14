@@ -1,21 +1,25 @@
+import string
+
 import websocket  # pip install websocket-client
 import json
 import pandas as pd
 
+import Tools
+from Tools import *
 
 def on_open(ws):
-    print('open')
     ws.send(our_msg)
     print('open')
 
 def on_message(ws, message):
     global df, in_position, buyorders, sellorders, confirm
     out = json.loads(message)
-    #print(out)
+    print(out)
 
+    namePairs = out['topic'].split('.')[-1] + out['topic'].split('.')[1]
     confirm = out['data'][0]['confirm']
     if confirm:
-        out = pd.DataFrame({'open': float(out['data'][0]['open']), 'close': float(out['data'][0]['close']),
+        out = pd.DataFrame({'name':namePairs, 'open': float(out['data'][0]['open']), 'close': float(out['data'][0]['close']),
                             'high': float(out['data'][0]['high']), 'low': float(out['data'][0]['low']),
                             'volume': float(out['data'][0]['volume'])},
                            index=[pd.to_datetime(out['data'][0]['start'], unit='ms')])
@@ -38,10 +42,19 @@ def on_message(ws, message):
 
 
 if __name__ == "__main__":
+    print("Bonjour")
+    test = {'topic': 'kline.1.BTCUSDT', 'data': [{'start': 1689341820000, 'end': 1689341879999, 'interval': '1', 'open': '31119', 'close': '31086.6', 'high': '31119', 'low': '31084.5', 'volume': '1828.465', 'turnover': '56861559.9487', 'confirm': False, 'timestamp': 1689341876860}], 'ts': 1689341876860, 'type': 'snapshot'}
+
+    config = Tools.readconfigfile()
+    apiKey = config["INFORMATIONS"]["api"]
+    argsPair = []
+    for pairs in config["PAIRS"]:
+        argsPair.append('kline.' + config["PAIRS"][pairs] + '.' + pairs.upper())
+
     confirm = False
     endpoint = 'wss://stream-testnet.bybit.com/v5/public/linear'
     our_msg = json.dumps({'op': 'subscribe',
-                          'args': ['kline.1.BTCUSDT'],
+                          'args': argsPair,
                           'id': 1})
     df = pd.DataFrame()
     buyorders, sellorders = [], []
@@ -51,4 +64,5 @@ if __name__ == "__main__":
 
     ws = websocket.WebSocketApp(endpoint, on_message=on_message, on_open=on_open)
     ws.run_forever()
+    print("Aurevoir")
     # Bybit Websocket
