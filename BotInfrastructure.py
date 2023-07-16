@@ -34,18 +34,24 @@ def on_message(ws, message):
         print('bought for ' + str(last_price))
         buyorders.append(last_price)
         in_position = True
+        #if canTradeWithBybit:
+            #Implement buying API + Verification of the remaining money
     if in_position and sma_5 > last_price:
         print('sold for ' + str(last_price))
         print('Profit : ' + str(last_price - buyorders[-1]))
         sellorders.append(last_price)
         in_position = False
+        #if canTradeWithBybit:
+            #Implement selling API + Verification of the remaining tokens
 
 
 if __name__ == "__main__":
+    global canTradeWithBybit
+
     print("Bonjour")
-    test = {'topic': 'kline.1.BTCUSDT', 'data': [{'start': 1689341820000, 'end': 1689341879999, 'interval': '1', 'open': '31119', 'close': '31086.6', 'high': '31119', 'low': '31084.5', 'volume': '1828.465', 'turnover': '56861559.9487', 'confirm': False, 'timestamp': 1689341876860}], 'ts': 1689341876860, 'type': 'snapshot'}
 
     config = Tools.readconfigfile()
+    canTradeWithBybit = config["INFORMATIONS"]["canTradeWithBybit"] == 'True'
     apiKey = config["INFORMATIONS"]["api"]
     argsPair = []
     for pairs in config["PAIRS"]:
