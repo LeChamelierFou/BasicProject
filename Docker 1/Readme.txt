@@ -1,11 +1,9 @@
 1. Installer docker
-2. Lancer un invité de commande / terminal dans le dossier de docker
-3. Exécuter la commande : docker build -t optimumtrade .
-4. Exécuter la commande : docker run -d --name optimumtrade optimumtrade
-5. Exécuter la commande : docker ps
-6. Récupérer le container_ID lié à l'image optimum trade
-7. Exécuter la commande : docker exec Container_ID bash
-8. Une fois dans le bash linux, lancer la commande : python ./BotInfrastructure.python
-9. Pour l'arrêter, faites ctrl + c
-10. Pour quitter le docker taper exit
-11. Pour stopper le docker, taper docker stop Container_ID
+2. En parallèle, lancer powershell en mode administrateur
+3. Exécuter la commande : Set-ExecutionPolicy RemoteSigned
+4. Valider la modification de stratégie en saisissant : "O"
+5. Quand Docker est installé lancer le script InstallDockerContainer.ps1 avec powershell
+    5.a : Si une erreur apparait, contacter votre service technique
+6. Pour lancer le bot, lancer le script ExecuteDockerContainer.ps1 avec powershell
+7. Pour couper le bot, lancer le script StopDockerContainer.ps1 avec powershell
+8. TO-DO : Faire un script de récupération des trades effectués par le bot pour les analyser
