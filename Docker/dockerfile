@@ -23,7 +23,11 @@ RUN ./install.sh
 # prepend the new path
 ENV PATH /root/miniconda3/bin:$PATH
 
-ADD ./BotInfrastructure.py .
+COPY . .
+
+RUN dir .
 
 # execute IPython when container is run
-CMD ["ipython", "./BotInfrastructure.py"]
+CMD ["python", "./BotInfrastructure.py"]
+
+RUN echo WORLD

@@ -1,4 +1,5 @@
-docker build -t optimumtrade .
+cd ..
+docker build -t optimumtrade ./Docker
 docker run -d -p 2368:2368 --name optimumtrade optimumtrade
 $containerId = docker ps -aqf name=optimumtrade
 docker stop $containerId
