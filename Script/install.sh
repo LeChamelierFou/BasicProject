@@ -22,9 +22,5 @@ bash Miniconda.sh -b # installs it
 rm -rf Miniconda.sh # removes the installer
 export PATH="/root/miniconda3/bin:$PATH" # prepends the new path
 # INSTALL PYTHON LIBRARIES
-conda update -y conda python # updates conda & Python (if required)
-conda install -c jmcmurray json
-conda install -c conda-forge websockets
-conda install -y pandas # installs pandas
-conda install -y ipython # installs IPython shell
-pip install pybit
+pip install --upgrade pip conda python # updates conda & Python (if required)
+pip install -r Requirements.txt

@@ -1,0 +1,7 @@
+websockets
+pandas
+ipython
+pybit
+configparser
+mplfinance
+numpy

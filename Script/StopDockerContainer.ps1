@@ -1,6 +1,4 @@
-cd ..
-docker build -t optimumtrade ./Docker
-docker run -d -p 2368:2368 --name optimumtrade optimumtrade
 $containerId = docker ps -aqf name=optimumtrade
+docker cp ${containerId}:./Output/ResultTrades.csv ../Output/
 docker stop $containerId
 Read-Host -Prompt "Press any key to continue..."

@@ -57,7 +57,7 @@ if __name__ == "__main__":
     print("Bonjour")
 
     # Manage CSV file
-    csv_object = open('ResultTrades.csv', 'a')
+    csv_object = open('../Output/ResultTrades.csv', 'a')
     writer_object = writer(csv_object)
 
     # Manage config file

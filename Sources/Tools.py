@@ -6,6 +6,8 @@ import mplfinance as mpf
 import configparser
 
 
+configPath = '../Config/config.ini'
+
 def createconfigfile():
     print("Create config file")
     config = configparser.ConfigParser()
@@ -13,14 +15,14 @@ def createconfigfile():
                               'CanTradeWithBybit': False}
     config['PAIRS'] = {'BTCUSDT' : '1',
                        'ETHUSDT' : '15'}
-    with open('config.ini', 'w') as configfile:
+    with open(configPath, 'w') as configfile:
         config.write(configfile)
 
 def readconfigfile():
-    if(not os.path.exists("config.ini")):
+    if(not os.path.exists(configPath)):
         createconfigfile()
     config = configparser.ConfigParser()
-    config.read("config.ini")
+    config.read(configPath)
     return config
         
 # The function to add a number of columns inside an array

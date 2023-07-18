@@ -9,10 +9,16 @@
 # latest Ubuntu version
 FROM ubuntu:latest
 # information about maintainer
-MAINTAINER yves
+LABEL Author SylvainC
 
 # add the bash script
-ADD install.sh /
+ADD ./Script/install.sh /
+COPY ./Script/* ./Script/
+COPY ./Config/Requirements.txt .
+COPY ./Sources/*.py ./Sources/
+
+RUN mkdir ./Config/
+RUN mkdir ./Output/
 
 # change rights for the script
 RUN chmod u+x /install.sh
@@ -23,11 +29,7 @@ RUN ./install.sh
 # prepend the new path
 ENV PATH /root/miniconda3/bin:$PATH
 
-COPY . .
-
-RUN dir .
+RUN mv ./Requirements.txt ./Config/Requirements.txt
 
 # execute IPython when container is run
-CMD ["python", "./BotInfrastructure.py"]
-
-RUN echo WORLD
+CMD ["python", "./Sources/BotInfrastructure.py"]
