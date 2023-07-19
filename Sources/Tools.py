@@ -1,3 +1,4 @@
+import datetime
 import os
 
 import numpy as np
@@ -7,6 +8,14 @@ import configparser
 
 
 configPath = '../Config/config.ini'
+
+
+def createcsvpath():
+    date = datetime.datetime.now().isoformat(timespec='minutes')
+    date = date.replace(':', 'h')
+    csvPath = '../Output/ResultTrades' + date + '.csv'
+    return csvPath
+
 
 def createconfigfile():
     print("Create config file")

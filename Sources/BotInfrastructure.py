@@ -7,18 +7,22 @@ import pandas as pd
 import Tools
 from Tools import *
 
+init = True
+
 def on_open(ws):
     ws.send(our_msg)
     print('open')
 
 def on_message(ws, message):
-    global df, in_position, buyorders, sellorders, confirm
+    global df, in_position, buyorders, sellorders, confirm, init
     out = json.loads(message)
     #print(out)
 
-    namePairs = out['topic'].split('.')[-1] + out['topic'].split('.')[1]
     confirm = out['data'][0]['confirm']
+
     if confirm:
+        namePairs = out['topic'].split('.')[-1] + out['topic'].split('.')[1]
+
         out = pd.DataFrame({'name': namePairs,
                             'open': float(out['data'][0]['open']), 'close': float(out['data'][0]['close']),
                             'high': float(out['data'][0]['high']), 'low': float(out['data'][0]['low']),
@@ -27,38 +31,64 @@ def on_message(ws, message):
         df = pd.concat([df, out], axis=0)
         print(df)
 
-    # Strategy on SMA on 5 elements
-    df = df.tail(5)  # 5 is a value of the value to keep in the dataframe for the calculation
-    last_price = df.tail(1).close.values[0]
-    sma_5 = df.close.rolling(5).mean().tail(1).values[0]
-    if not in_position and last_price > sma_5:
-        print('bought for ' + str(last_price))
-        buyorders.append(last_price)
-        in_position = True
-        resultbuycsv = df.tail(1).to_list()
-        writer_object.writerow(resultbuycsv.extend(["Buy", 0]))
-        #if canTradeWithBybit:
-            #Implemnt buying API + Verification of the remaining money
-    if in_position and sma_5 > last_price:
-        print('sold for ' + str(last_price))
-        profit = str(last_price - buyorders[-1])
-        print('Profit : ' + profit)
-        sellorders.append(last_price)
-        in_position = False
-        resultbuycsv = df.tail(1).to_list()
-        writer_object.writerow(resultbuycsv.extend(["Sell", profit]))
-        #if canTradeWithBybit:
-            #Implement selling API + Verification of the remaining tokens
+        # Manage CSV file
+        csv_object = open(csvPath, 'a', newline='')
+        writer_object = writer(csv_object)
 
+        if init:
+            header = ['Action', 'Profit']
+            header.extend(df.columns.values.tolist())
+            print(header)
+            writer_object.writerow(header)
+            init = False
+
+        # Strategy on SMA on 5 elements
+        df = df.tail(5)  # 5 is a value of the value to keep in the dataframe for the calculation
+        last_price = df.tail(1).close.values[0]
+        sma_5 = df.close.rolling(5).mean().tail(1).values[0]
+
+        # Buy signal
+        if not in_position and last_price > sma_5:
+            # Manage values
+            buyorders.append(last_price)
+            in_position = True
+            #if canTradeWithBybit:
+                #Implemnt buying API + Verification of the remaining money
+
+            # Display results
+            print('bought for ' + str(last_price))
+
+            # Add a row in csv
+            row = ['Buy', 0]
+            row.extend(df.tail(1).values[0])
+            writer_object.writerow(row)
+
+
+        # Sell signal
+        if in_position and sma_5 > last_price:
+            # Manage values
+            profit = str(last_price - buyorders[-1])
+            sellorders.append(last_price)
+            in_position = False
+            #if canTradeWithBybit:
+                #Implement selling API + Verification of the remaining tokens
+
+            # Display results
+            print('sold for ' + str(last_price))
+            print('Profit : ' + profit)
+
+            # Add a row in csv
+            row = ['Sell', profit]
+            row.extend(df.tail(1).values[0])
+            writer_object.writerow(row)
+
+        # Close csv file
+        csv_object.close()
 
 if __name__ == "__main__":
-    global canTradeWithBybit, writer_object
+    global canTradeWithBybit, csvPath
 
-    print("Bonjour")
-
-    # Manage CSV file
-    csv_object = open('../Output/ResultTrades.csv', 'a')
-    writer_object = writer(csv_object)
+    print("Lancement d'optimum trade")
 
     # Manage config file
     config = Tools.readconfigfile()
@@ -68,13 +98,16 @@ if __name__ == "__main__":
     for pairs in config["PAIRS"]:
         argsPair.append('kline.' + config["PAIRS"][pairs] + '.' + pairs.upper())
 
+    # Create name for csv
+    csvPath = Tools.createcsvpath()
+
     # Manage websocket infos
     endpoint = 'wss://stream-testnet.bybit.com/v5/public/linear'
     our_msg = json.dumps({'op': 'subscribe',
                           'args': argsPair,
                           'id': 1})
 
-    # Init lists and booleans
+    # Init lists and booleans for on_message callback
     df = pd.DataFrame()
     buyorders, sellorders = [], []
     in_position = False
@@ -83,8 +116,5 @@ if __name__ == "__main__":
     # Recuperer toutes les datas
     ws = websocket.WebSocketApp(endpoint, on_message=on_message, on_open=on_open)
     ws.run_forever()
-
-    # Close csv file
-    csv_object.close()
 
     print("Aurevoir")
