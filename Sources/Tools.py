@@ -20,7 +20,8 @@ def createcsvpath():
 def createconfigfile():
     print("Create config file")
     config = configparser.ConfigParser()
-    config['INFORMATIONS'] = {'Api': 'hdtxv5se62dchjn',
+    config['INFORMATIONS'] = {'ApiKey': 'hdtxv5se62dchjn',
+                              'ApiSecret': 'hdtxv5se62dchjn',
                               'CanTradeWithBybit': False}
     config['PAIRS'] = {'BTCUSDT' : '1',
                        'ETHUSDT' : '15'}
