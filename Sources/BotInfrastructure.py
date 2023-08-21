@@ -1,5 +1,7 @@
+import datetime
 import string
 from csv import writer
+from pybit.unified_trading import *
 import websocket  # pip install websocket-client
 import json
 import pandas as pd
@@ -22,32 +24,24 @@ def on_message(ws, message):
 
     if confirm:
         namePairs = out['topic'].split('.')[-1] + out['topic'].split('.')[1]
+        print('1692652500000')
+        print(out['data'][0]['start'])
+        # Probleme sur la verification de la datetimeindex et du timestamp pour eviter des doublons à l'init
+        if dictDf[namePairs].tail(1).index.values == datetime.datetime.fromtimestamp(int(out['data'][0]['start'])/1000):
+            return
 
         out = pd.DataFrame({'open': float(out['data'][0]['open']), 'close': float(out['data'][0]['close']),
                             'high': float(out['data'][0]['high']), 'low': float(out['data'][0]['low']),
                             'volume': float(out['data'][0]['volume'])},
                            index=[pd.to_datetime(out['data'][0]['start'], unit='ms')])
-
-        if namePairs not in dictDf.keys():
-            dictDf[namePairs] = pd.DataFrame()
-            in_position[namePairs] = False
-            buyorders[namePairs] = []
-            sellorders[namePairs] = []
-
+        print(namePairs)
+        print(dictDf[namePairs])
         dictDf[namePairs] = pd.concat([dictDf[namePairs], out], axis=0)
         print(dictDf[namePairs])
 
         # Manage CSV file
         csv_object = open(csvPath, 'a', newline='')
         writer_object = writer(csv_object)
-
-        # Faire en sorte de n'y rentrer qu'une fois!!!!!
-        if init:
-            header = ['Name', 'Action', 'Profit']
-            header.extend(dictDf[namePairs].columns.values.tolist())
-            print(header)
-            writer_object.writerow(header)
-            init = False
 
         # Strategy on SMA on 5 elements
         dictDf[namePairs] = dictDf[namePairs].tail(5)  # 5 is a value of the value to keep in the dataframe for the calculation
@@ -92,33 +86,81 @@ def on_message(ws, message):
         # Close csv file
         csv_object.close()
 
-if __name__ == "__main__":
-    global canTradeWithBybit, csvPath
+def init_ichimoku(namePairs):
+    global dictDf
+    # Retrieve kline for the 52nd last minutes in order to create the cloud properly
+    session = HTTP(testnet=True)
+    end = datetime.datetime.now().replace(second=0)
+    start = end - datetime.timedelta(minutes=52)
+    start = datetime.datetime.timestamp(start)
+    end = datetime.datetime.timestamp(end)
 
-    print("Lancement d'optimum trade")
+    kline = session.get_kline(category="linear",
+                              symbol="BTCUSD",
+                              interval=1,
+                              start=start,
+                              end=end,
+                              limit=52)
+
+    listResults = list(reversed(kline['result']['list']))
+    for elements in listResults:
+        out = pd.DataFrame({'open': float(elements[1]), 'close': float(elements[4]),
+                            'high': float(elements[2]), 'low': float(elements[3]),
+                            'volume': float(elements[5])},
+                           index=[pd.to_datetime(int(elements[0]), unit='ms')])
+        dictDf[namePairs] = pd.concat([dictDf[namePairs], out], axis=0)
+    #print(dictDf[namePairs])
+
+def init():
+    global argsPair, canTradeWithBybit, csvPath, dictDf, confirm
+    # Init lists and booleans for on_message callback
+    dictDf = dict()
+    confirm = False
+    buyorders, sellorders = dict(), dict()
+    in_position = dict()
 
     # Manage config file
     config = Tools.readconfigfile()
+
     canTradeWithBybit = config["INFORMATIONS"]["canTradeWithBybit"] == 'True'
-    apiKey = config["INFORMATIONS"]["api"]
-    argsPair = []
-    for pairs in config["PAIRS"]:
-        argsPair.append('kline.' + config["PAIRS"][pairs] + '.' + pairs.upper())
+    apiKey = config["INFORMATIONS"]["apikey"]
+    apiSecret = config["INFORMATIONS"]["apisecret"]
 
     # Create name for csv
     csvPath = Tools.createcsvpath()
+    # Manage CSV file
+    csv_object = open(csvPath, 'a', newline='')
+    writer_object = writer(csv_object)
+
+    argsPair = []
+    for pairs in config["PAIRS"]:
+        timeValue = config["PAIRS"][pairs]
+        pairsWithTimeValue = pairs.upper() + timeValue
+        argsPair.append('kline.' + timeValue + '.' + pairs.upper())
+        if pairs not in dictDf.keys():
+            dictDf[pairsWithTimeValue] = pd.DataFrame()
+            in_position[pairs] = False
+            buyorders[pairs] = []
+            sellorders[pairs] = []
+
+        init_ichimoku(pairsWithTimeValue)
+
+        # Extend header in csv at initiation
+        header = ['Name', 'Action', 'Profit']
+        header.extend(dictDf[pairsWithTimeValue].columns.values.tolist())
+        print(header)
+        writer_object.writerow(header)
+
+if __name__ == "__main__":
+    # print("Lancement d'optimum trade")
+
+    init()
 
     # Manage websocket infos
     endpoint = 'wss://stream-testnet.bybit.com/v5/public/linear'
     our_msg = json.dumps({'op': 'subscribe',
                           'args': argsPair,
                           'id': 1})
-
-    # Init lists and booleans for on_message callback
-    dictDf = dict()
-    buyorders, sellorders = dict(), dict()
-    in_position = dict()
-    confirm = False
 
     # Recuperer toutes les datas
     ws = websocket.WebSocketApp(endpoint, on_message=on_message, on_open=on_open)
