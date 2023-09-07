@@ -5,10 +5,11 @@ from pybit.unified_trading import *
 import websocket  # pip install websocket-client
 import json
 import pandas as pd
-
+from pybit.unified_trading import *
 import Tools
+from Sources.Ichimoku import Ichimoku
+from Sources.PlotTools import PlotTools
 from Tools import *
-
 init = True
 
 def on_open(ws):
@@ -16,7 +17,7 @@ def on_open(ws):
     print('open')
 
 def on_message(ws, message):
-    global dictDf, in_position, buyorders, sellorders, confirm, init
+    global dictDf, in_position, buyorders, sellorders, confirm, init, session
     out = json.loads(message)
     #print(out)
 
@@ -86,21 +87,21 @@ def on_message(ws, message):
         # Close csv file
         csv_object.close()
 
-def init_ichimoku(namePairs):
+def init_ichimoku(namePairs, nbTimeFrame, interval):
     global dictDf
     # Retrieve kline for the 52nd last minutes in order to create the cloud properly
     session = HTTP(testnet=True)
     end = datetime.datetime.now().replace(second=0)
-    start = end - datetime.timedelta(minutes=52)
+    start = end - datetime.timedelta(minutes=nbTimeFrame*60)
     start = datetime.datetime.timestamp(start)
     end = datetime.datetime.timestamp(end)
 
     kline = session.get_kline(category="linear",
                               symbol="BTCUSD",
-                              interval=1,
+                              interval=interval,
                               start=start,
                               end=end,
-                              limit=52)
+                              limit=nbTimeFrame)
 
     listResults = list(reversed(kline['result']['list']))
     for elements in listResults:
@@ -111,7 +112,7 @@ def init_ichimoku(namePairs):
         dictDf[namePairs] = pd.concat([dictDf[namePairs], out], axis=0)
     #print(dictDf[namePairs])
 
-def init():
+def init(nbTimeFrame, interval):
     global argsPair, canTradeWithBybit, csvPath, dictDf, confirm
     # Init lists and booleans for on_message callback
     dictDf = dict()
@@ -143,7 +144,7 @@ def init():
             buyorders[pairs] = []
             sellorders[pairs] = []
 
-        init_ichimoku(pairsWithTimeValue)
+        init_ichimoku(pairsWithTimeValue, nbTimeFrame, interval)
 
         # Extend header in csv at initiation
         header = ['Name', 'Action', 'Profit']
@@ -153,8 +154,9 @@ def init():
 
 if __name__ == "__main__":
     # print("Lancement d'optimum trade")
-
-    init()
+    nbTimeFrame = 52*100
+    interval = 1
+    init(nbTimeFrame, interval)
 
     # Manage websocket infos
     endpoint = 'wss://stream-testnet.bybit.com/v5/public/linear'
@@ -162,8 +164,24 @@ if __name__ == "__main__":
                           'args': argsPair,
                           'id': 1})
 
+    kijun_lookback = 26
+    tenkan_lookback = 9
+    chikou_lookback = 26
+    senkou_span_projection = 26
+    senkou_span_a_lookback = 26
+    senkou_span_b_lookback = 52
+    ichimoku = Ichimoku(kijun_lookback, tenkan_lookback, chikou_lookback, senkou_span_a_lookback, senkou_span_b_lookback, senkou_span_projection)
+    ichimoku.kijun_sen(dictDf)
+    ichimoku.tenkan_sen(dictDf)
+    ichimoku.chikou_span(dictDf)
+    ichimoku.senkou_span(dictDf)
+    # print(dictDf)
+    # PlotTools(dictDf)
+    ichimoku.signal(dictDf)
+    # Toujours conserver 156 valeurs pour avoir un beau nuage bien complet
+
     # Recuperer toutes les datas
-    ws = websocket.WebSocketApp(endpoint, on_message=on_message, on_open=on_open)
-    ws.run_forever()
+    # ws = websocket.WebSocketApp(endpoint, on_message=on_message, on_open=on_open)
+    # ws.run_forever()
 
     print("Aurevoir")

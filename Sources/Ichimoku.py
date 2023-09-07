@@ -4,10 +4,11 @@ from Tools import *
 
 class Ichimoku:
     def __init__(self, kijun_lookback, tenkan_lookback, chikou_lookback,
-                 senkou_span_b_lookback, senkou_span_projection):
+                 senkou_span_a_lookback, senkou_span_b_lookback, senkou_span_projection):
         self._kijun_lookback = kijun_lookback
         self._tenkan_lookback = tenkan_lookback
         self._chikou_lookback = chikou_lookback
+        self._senkou_span_a_lookback = senkou_span_a_lookback
         self._senkou_span_b_lookback = senkou_span_b_lookback
         self._senkou_span_projection = senkou_span_projection
 
@@ -21,6 +22,16 @@ class Ichimoku:
         Data[:, where] = Data[:, where] / 2
         return Data
 
+    def kijun_sen(self, Data):
+        for key in Data.keys():
+            listKijun = []
+            for i in range(len(Data[key])):
+                j = i - self._kijun_lookback if i - self._kijun_lookback > 0 else 0
+                currentKijun = (max(Data[key]['high'][j:i+1]) +\
+                                min(Data[key]['low'][j:i+1])) / 2
+                listKijun.append(currentKijun)
+            Data[key]['kijun_sen'] = listKijun
+
     def _tenkan_sen(self, Data, high, low, where):
         for i in range(len(Data)):
             try:
@@ -31,6 +42,16 @@ class Ichimoku:
         Data[:, where + 1] = Data[:, where + 1] / 2
         return Data
 
+    def tenkan_sen(self, Data):
+        for key in Data.keys():
+            listTenkan = []
+            for i in range(len(Data[key])):
+                j = i - self._tenkan_lookback if i - self._tenkan_lookback > 0 else 0
+                currentTenkan = (max(Data[key]['high'][j:i+1]) +\
+                                 min(Data[key]['low'][j:i+1])) / 2
+                listTenkan.append(currentTenkan)
+            Data[key]['tenkan_sen'] = listTenkan
+
     def _chikou_span(self, Data, closing_price, where_chikou):
         for i in range(len(Data)):
             try:
@@ -38,6 +59,10 @@ class Ichimoku:
             except IndexError:
                 pass
         return Data
+
+    def chikou_span(self, Data):
+        for key in Data.keys():
+            Data[key]['chikou_span'] = Data[key]['close'].shift(self._chikou_lookback)
 
     def _senkou_span(self, Data, high, low, where):
         senkou_span_a = (Data[:, where] + Data[:, where + 1]) / 2
@@ -55,6 +80,17 @@ class Ichimoku:
         kumo = np.concatenate((senkou_span_a, senkou_span_b), axis=1)
         Data = deleter(Data, where + 2, 1)
         return kumo
+
+    def senkou_span(self, Data):
+        for key in Data.keys():
+            senkou_span_a = (Data[key]['tenkan_sen'] + Data[key]['kijun_sen'])/2
+            senkou_span_a.shift(self._senkou_span_a_lookback)
+            Data[key]['senkou_span_a'] = senkou_span_a
+
+            period52_high = Data[key]['high'].rolling(self._senkou_span_b_lookback).max()
+            period52_low = Data[key]['low'].rolling(self._senkou_span_b_lookback).min()
+            senkou_span_b = ((period52_high + period52_low) / 2).shift(self._senkou_span_projection)
+            Data[key]['senkou_span_b'] = senkou_span_b
 
     def _create_cloud(self, Data, kumo, closing_price, where_chikou):
         # Creating the cloud
@@ -114,4 +150,22 @@ class Ichimoku:
                Data[i, close] < Data[i, senkou_span_b] and \
                Data[i - 26, chikou] < Data[i - 26, close]:
                 Data[i, sell] = -1
+        return Data
+
+    def signal(self, Data):
+        for key in Data.keys():
+            for i in range(len(Data)):
+                if Data[key]['tenkan_sen'][i] > Data[key]['kijun_sen'][i] and \
+                   Data[key]['tenkan_sen'][i-1] < Data[key]['kijun_sen'][i-1] and \
+                   Data[key]['close'][i] > Data[key]['senkou_span_a'][i] and \
+                   Data[key]['close'][i] > Data[key]['senkou_span_b'][i] and \
+                   Data[key]['chikou_span'][i - self._chikou_lookback] > Data[key]['close'][i - self._chikou_lookback]:
+                    print("Buy at time : ")# + Data[key].axes[0][i])
+
+                if Data[key]['tenkan_sen'][i] < Data[key]['kijun_sen'][i] and\
+                   Data[key]['tenkan_sen'][i-1] > Data[key]['kijun_sen'][i-1] and \
+                   Data[key]['close'][i] < Data[key]['senkou_span_a'][i] and \
+                   Data[key]['close'][i] < Data[key]['senkou_span_b'][i] and \
+                   Data[key]['chikou_span'][i - self._chikou_lookback] < Data[key]['close'][ - self._chikou_lookback]:
+                    print("Sell at time : ")# + Data[key].axes[0][i])
         return Data
