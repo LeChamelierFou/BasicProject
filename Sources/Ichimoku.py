@@ -152,20 +152,28 @@ class Ichimoku:
                 Data[i, sell] = -1
         return Data
 
-    def signal(self, Data):
+    def signal(self, Data, inPosition, buyorders, sellorders):
         for key in Data.keys():
-            for i in range(len(Data)):
+            for i in range(Data[key].shape[0]):
                 if Data[key]['tenkan_sen'][i] > Data[key]['kijun_sen'][i] and \
                    Data[key]['tenkan_sen'][i-1] < Data[key]['kijun_sen'][i-1] and \
                    Data[key]['close'][i] > Data[key]['senkou_span_a'][i] and \
                    Data[key]['close'][i] > Data[key]['senkou_span_b'][i] and \
-                   Data[key]['chikou_span'][i - self._chikou_lookback] > Data[key]['close'][i - self._chikou_lookback]:
-                    print("Buy at time : ")# + Data[key].axes[0][i])
+                   Data[key]['chikou_span'][i - self._chikou_lookback] > Data[key]['close'][i - self._chikou_lookback] and \
+                   not inPosition[key]:
+                    buyorders[key].append(Data[key]['close'][i])
+                    print("Buy at " + key + " time : " + str(Data[key].axes[0][i]))
+                    inPosition[key] = True
 
                 if Data[key]['tenkan_sen'][i] < Data[key]['kijun_sen'][i] and\
                    Data[key]['tenkan_sen'][i-1] > Data[key]['kijun_sen'][i-1] and \
                    Data[key]['close'][i] < Data[key]['senkou_span_a'][i] and \
                    Data[key]['close'][i] < Data[key]['senkou_span_b'][i] and \
-                   Data[key]['chikou_span'][i - self._chikou_lookback] < Data[key]['close'][ - self._chikou_lookback]:
-                    print("Sell at time : ")# + Data[key].axes[0][i])
+                   Data[key]['chikou_span'][i - self._chikou_lookback] < Data[key]['close'][i - self._chikou_lookback] and \
+                    inPosition[key]:
+                    profit = str(Data[key]['close'][i] - buyorders[key][-1])
+                    sellorders[key].append(Data[key]['close'][i])
+                    print("Sell " + key + " at time : " + str(Data[key].axes[0][i]))
+                    print("Profit : " + profit)
+                    inPosition[key] = False
         return Data

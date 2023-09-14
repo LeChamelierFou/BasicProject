@@ -1,6 +1,8 @@
 import datetime
 import string
 from csv import writer
+
+from numpy import genfromtxt
 from pybit.unified_trading import *
 import websocket  # pip install websocket-client
 import json
@@ -87,7 +89,7 @@ def on_message(ws, message):
         # Close csv file
         csv_object.close()
 
-def init_ichimoku(namePairs, nbTimeFrame, interval):
+def init_ichimoku(namePairsWithTime, namePairs, nbTimeFrame, interval):
     global dictDf
     # Retrieve kline for the 52nd last minutes in order to create the cloud properly
     session = HTTP(testnet=True)
@@ -97,7 +99,7 @@ def init_ichimoku(namePairs, nbTimeFrame, interval):
     end = datetime.datetime.timestamp(end)
 
     kline = session.get_kline(category="linear",
-                              symbol="BTCUSD",
+                              symbol=namePairs.upper(),
                               interval=interval,
                               start=start,
                               end=end,
@@ -109,11 +111,11 @@ def init_ichimoku(namePairs, nbTimeFrame, interval):
                             'high': float(elements[2]), 'low': float(elements[3]),
                             'volume': float(elements[5])},
                            index=[pd.to_datetime(int(elements[0]), unit='ms')])
-        dictDf[namePairs] = pd.concat([dictDf[namePairs], out], axis=0)
-    #print(dictDf[namePairs])
+        dictDf[namePairsWithTime] = pd.concat([dictDf[namePairsWithTime], out], axis=0)
+    #print(dictDf[namePairsWithTime])
 
-def init(nbTimeFrame, interval):
-    global argsPair, canTradeWithBybit, csvPath, dictDf, confirm
+def init(nbTimeFrame):
+    global argsPair, canTradeWithBybit, csvPath, dictDf, confirm, in_position, buyorders, sellorders
     # Init lists and booleans for on_message callback
     dictDf = dict()
     confirm = False
@@ -140,11 +142,11 @@ def init(nbTimeFrame, interval):
         argsPair.append('kline.' + timeValue + '.' + pairs.upper())
         if pairs not in dictDf.keys():
             dictDf[pairsWithTimeValue] = pd.DataFrame()
-            in_position[pairs] = False
-            buyorders[pairs] = []
-            sellorders[pairs] = []
+            in_position[pairsWithTimeValue] = False
+            buyorders[pairsWithTimeValue] = []
+            sellorders[pairsWithTimeValue] = []
 
-        init_ichimoku(pairsWithTimeValue, nbTimeFrame, interval)
+        init_ichimoku(pairsWithTimeValue, pairs, nbTimeFrame, timeValue)
 
         # Extend header in csv at initiation
         header = ['Name', 'Action', 'Profit']
@@ -152,18 +154,31 @@ def init(nbTimeFrame, interval):
         print(header)
         writer_object.writerow(header)
 
+def backtest():
+    global dictDf
+    #Date,Open,High,Low,Close,Volume BTC,Volume USDT
+    quotes = genfromtxt('../Binance_BTCUSDT_1h.csv', delimiter=',')
+    quotes = quotes[::-1]
+    dictDf = dict()
+    dictDf['BTCUSDT'] = pd.DataFrame()
+    for elements in quotes:
+        out = pd.DataFrame({'open': float(elements[1]), 'close': float(elements[4]),
+                            'high': float(elements[2]), 'low': float(elements[3]),
+                            'volume': float(elements[5])},
+                           index=[pd.to_datetime(int(elements[0]*1000000), unit='ns')])
+        dictDf['BTCUSDT'] = pd.concat([dictDf['BTCUSDT'], out], axis=0)
+
 if __name__ == "__main__":
-    # print("Lancement d'optimum trade")
-    nbTimeFrame = 52*100
-    interval = 1
-    init(nbTimeFrame, interval)
+    print("Lancement d'optimum trade")
+    nbTimeFrame = 52*5000
+    init(nbTimeFrame)
 
     # Manage websocket infos
     endpoint = 'wss://stream-testnet.bybit.com/v5/public/linear'
     our_msg = json.dumps({'op': 'subscribe',
                           'args': argsPair,
                           'id': 1})
-
+    # backtest()
     kijun_lookback = 26
     tenkan_lookback = 9
     chikou_lookback = 26
@@ -177,7 +192,7 @@ if __name__ == "__main__":
     ichimoku.senkou_span(dictDf)
     # print(dictDf)
     # PlotTools(dictDf)
-    ichimoku.signal(dictDf)
+    ichimoku.signal(dictDf, in_position, buyorders, sellorders)
     # Toujours conserver 156 valeurs pour avoir un beau nuage bien complet
 
     # Recuperer toutes les datas
